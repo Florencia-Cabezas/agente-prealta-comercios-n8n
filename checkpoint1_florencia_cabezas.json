@@ -1,0 +1,402 @@
+{
+  "name": "Agente Pre-Alta Comercios - M1",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "863f44d7-b29b-41bb-9686-ace0b1f7bac2",
+      "name": "When chat message received",
+      "webhookId": "0d4924ff-90eb-4533-9860-f5002526c9c9"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "# ROL Y ÁMBITO\nSos el Asistente de Pre-Alta de Comercios de RedCobro, una procesadora de pagos (empresa ficticia). Atendés a comercios que quieren empezar a cobrar con RedCobro y tomás su solicitud de alta.\n\nNO tenés autorización para:\n- Aprobar, rechazar o dar de alta un comercio. Solo registrás la solicitud para revisión.\n- Informar o negociar aranceles, comisiones, plazos de acreditación ni descuentos.\n- Pedir o registrar datos de tarjetas, claves o contraseñas.\n- Modificar o borrar solicitudes existentes.\n- Responder consultas ajenas al alta de comercios.\n\n# OBJETIVO\nConvertir el mensaje del comercio en una solicitud de alta completa y limpia en la planilla, lista para que un analista la revise.\n\nDatos obligatorios:\n1. Razón social\n2. CUIT (11 dígitos)\n3. Rubro\n4. Nombre de contacto\n5. Email\n6. Teléfono\n7. Localidad\n8. Medios de cobro solicitados (QR, link de pago, terminal POS, botón de pago e-commerce)\n\n# REGLAS DE USO DE HERRAMIENTAS\n1. Si falta algún dato obligatorio, no uses herramientas: pedí solo los datos faltantes, en un único mensaje.\n2. Normalizá el CUIT a 11 dígitos sin guiones ni espacios. Si no tiene 11 dígitos, pedí que lo corrija.\n3. Con todos los datos completos, usá primero la herramienta \"Buscar_Solicitud_por_CUIT\".\n4. Si el CUIT ya tiene una solicitud, NO registres otra: informá que ya existe una solicitud en curso y su estado.\n5. Si no existe, usá \"Registrar_Solicitud_Alta\" una sola vez.\n6. Nunca inventes ni supongas datos. Si un dato es dudoso, preguntá.\n\n# ESCALAMIENTO\nDetené el proceso, no uses herramientas y respondé exactamente: \"Tu caso requiere revisión de un analista. Te vamos a contactar a la brevedad.\" cuando:\n- El rubro sea juegos de azar, apuestas, criptoactivos, armas, casas de cambio o venta de medicamentos.\n- El usuario pida aranceles especiales, descuentos o condiciones comerciales a medida.\n- El usuario exprese un reclamo o pida hablar con una persona.\n\n# ESTILO\nEspañol rioplatense, cordial y profesional, respuestas breves. Al registrar una solicitud, confirmá con un resumen de los datos y aclará que un analista la va a revisar.",
+          "maxIterations": 7,
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "2f565db1-9b27-478f-839a-193491a5a5dd",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5",
+          "cachedResultUrl": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        96,
+        208
+      ],
+      "id": "045e40f3-e0bb-46d0-98aa-b0f088d3a5b0",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "q0kzUj7ef4mOSN7v",
+          "name": "Anthropic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Busca en la planilla de solicitudes de alta si ya existe una solicitud para un CUIT determinado. Usala SIEMPRE antes de registrar una solicitud nueva, una vez que tengas el CUIT normalizado a 11 dígitos sin guiones, para evitar duplicados. Usala también cuando el comercio pregunte en qué estado está su solicitud. Devuelve la fila encontrada (con Estado y Fecha) o ningún resultado si el CUIT no está registrado. No la uses si todavía no tenés el CUIT, ni para buscar por otros datos.",
+        "documentId": {
+          "__rl": true,
+          "value": "1R7tvM6HFDdTXC0F0WPXL0heh7SySnEpNBZ_oGTB-FDs",
+          "mode": "list",
+          "cachedResultName": "Solicitudes alta comercio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1R7tvM6HFDdTXC0F0WPXL0heh7SySnEpNBZ_oGTB-FDs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Solicitudes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1R7tvM6HFDdTXC0F0WPXL0heh7SySnEpNBZ_oGTB-FDs/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "CUIT",
+              "lookupValue": "={{ $fromAI('CUIT', 'CUIT del comercio, 11 dígitos sin guiones', 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        208
+      ],
+      "id": "5f750d13-29b2-4bb5-b3ad-e3a074840633",
+      "name": "Buscar_Solicitud_por_CUIT",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4f0jnoxmYGqdGp4K",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Registra una solicitud de alta de comercio nueva en la planilla para que un analista la revise. Usala solo cuando se cumplan las tres condiciones: (1) tenés los 8 datos obligatorios provistos por el usuario, (2) ya consultaste Buscar_Solicitud_por_CUIT y no existe una solicitud previa para ese CUIT, y (3) el caso no cumple ninguna condición de escalamiento. Usala una sola vez por solicitud. No la uses para modificar solicitudes existentes ni con datos incompletos o supuestos.",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1R7tvM6HFDdTXC0F0WPXL0heh7SySnEpNBZ_oGTB-FDs",
+          "mode": "list",
+          "cachedResultName": "Solicitudes alta comercio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1R7tvM6HFDdTXC0F0WPXL0heh7SySnEpNBZ_oGTB-FDs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Solicitudes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1R7tvM6HFDdTXC0F0WPXL0heh7SySnEpNBZ_oGTB-FDs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $now.format('dd/MM/yyyy HH:mm') }}",
+            "Session_ID": "={{ $('When chat message received').item.json.sessionId }}",
+            "Razon_Social": "={{ $fromAI('Razon_Social', 'Razón social del comercio', 'string') }}",
+            "CUIT": "={{ $fromAI('CUIT', 'CUIT, 11 dígitos sin guiones', 'string') }}",
+            "Rubro": "={{ $fromAI('Rubro', 'Rubro o actividad del comercio', 'string') }}",
+            "Contacto": "={{ $fromAI('Contacto', 'Nombre y apellido del contacto', 'string') }}",
+            "Email": "={{ $fromAI('Email', 'Email del contacto', 'string') }}",
+            "Telefono": "={{ $fromAI('Telefono', 'Teléfono del contacto', 'string') }}",
+            "Localidad": "={{ $fromAI('Localidad', 'Localidad y provincia', 'string') }}",
+            "Medios_Cobro": "={{ $fromAI('Medios_Cobro', 'Medios de cobro solicitados, separados por coma', 'string') }}",
+            "Estado": "Pendiente de revisión",
+            "Observaciones": "={{ $fromAI('Observaciones', 'Aclaraciones relevantes del usuario; vacío si no hay', 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Session_ID",
+              "displayName": "Session_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Razon_Social",
+              "displayName": "Razon_Social",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CUIT",
+              "displayName": "CUIT",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rubro",
+              "displayName": "Rubro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Contacto",
+              "displayName": "Contacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telefono",
+              "displayName": "Telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Localidad",
+              "displayName": "Localidad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Medios_Cobro",
+              "displayName": "Medios_Cobro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Observaciones",
+              "displayName": "Observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        560,
+        208
+      ],
+      "id": "0a776aa7-8b4c-44c3-9fac-5e0944f68862",
+      "name": "Registrar_Solicitud_Alta",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "4f0jnoxmYGqdGp4K",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "florencialujan60@gmail.com",
+        "subject": "=[Agente Pre-Alta] Log de ejecución {{ $now.format('dd/MM HH:mm') }}",
+        "emailType": "text",
+        "message": "=LOG DE EJECUCIÓN - AGENTE PRE-ALTA DE COMERCIOS\n\nSession ID: {{ $('When chat message received').item.json.sessionId }}\nFecha: {{ $now.format('dd/MM/yyyy HH:mm') }}\n\nMENSAJE DEL USUARIO:\n{{ $('When chat message received').item.json.chatInput }}\n\nRESPUESTA DEL AGENTE:\n{{ $json.output }}\n\nHERRAMIENTAS EJECUTADAS (auditoría del razonamiento):\n{{ $json.intermediateSteps && $json.intermediateSteps.length ? JSON.stringify($json.intermediateSteps, null, 2) : 'Sin herramientas ejecutadas (pidió datos o escaló).' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        0
+      ],
+      "id": "fef7268d-98f1-44e2-8619-32a6a6c50211",
+      "name": "Log_Auditoria",
+      "webhookId": "61f29ec4-a191-417c-b4d2-3f0685cbc450",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "r0PJP9KE0ADCuSxA",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "53714ed8-f1d0-4c0e-a044-e7f00510214a",
+              "name": "output",
+              "value": "={{ $('AI Agent').item.json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        816,
+        0
+      ],
+      "id": "59565932-4651-4273-bddd-56fd9a1a02ff",
+      "name": "Respuesta_al_Chat"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar_Solicitud_por_CUIT": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar_Solicitud_Alta": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Log_Auditoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log_Auditoria": {
+      "main": [
+        [
+          {
+            "node": "Respuesta_al_Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3e86cf31-3387-4ff9-a026-7744c53af3e0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1a4a9a6f42bc68f057a9d3c592339cd5fcd9fd62c22dbaffa57208ff0e171ae4"
+  },
+  "nodeGroups": [],
+  "id": "cB4ZkujNSWrEPjhu",
+  "tags": []
+}
